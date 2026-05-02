@@ -21,7 +21,8 @@ const Storage = {
             const defaultRoot = {
                 id: 'rootuser',
                 username: 'rootuser',
-                password: '1234', // Initial password
+                name: '관리자',
+                password: '1234',
                 failedAttempts: 0,
                 isLocked: false,
                 mustChangePassword: true,

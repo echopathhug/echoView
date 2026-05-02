@@ -26,6 +26,7 @@ const Auth = {
             
             // Check if password change is required
             if (user.mustChangePassword) {
+                Storage.setCurrentUser(user);
                 return { success: true, mustChangePassword: true, user };
             }
 
@@ -63,7 +64,7 @@ const Auth = {
         return { success: true };
     },
 
-    createUser(username, initialPassword = '1234') {
+    createUser(username, name, role = 'user', initialPassword = '1234') {
         const users = Storage.getUsers();
         if (users.find(u => u.username === username)) {
             return { success: false, message: '이미 존재하는 아이디입니다.' };
@@ -72,11 +73,12 @@ const Auth = {
         const newUser = {
             id: 'user_' + Date.now(),
             username,
+            name: name || username,
             password: initialPassword,
             failedAttempts: 0,
             isLocked: false,
             mustChangePassword: true,
-            role: 'user',
+            role,
             createdAt: new Date().toISOString()
         };
 

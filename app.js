@@ -21,11 +21,11 @@ const App = {
 
     applySettings() {
         const settings = Storage.getSettings();
-        document.documentElement.style.setProperty('--font-main', settings.font);
+        const font = settings.font || "'Inter', sans-serif";
+        document.documentElement.style.setProperty('--font-main', font);
         
-        // Update select dropdown if on main screen
         const fontSelect = document.getElementById('font-select');
-        if (fontSelect) fontSelect.value = settings.font;
+        if (fontSelect) fontSelect.value = font;
     },
 
     renderScreen() {
@@ -73,9 +73,9 @@ const App = {
             document.getElementById('config-view').classList.remove('hidden');
             document.getElementById('current-folder-title').textContent = '환경 설정';
             document.getElementById('btn-config-view').classList.add('active');
-            // Load current font
             const settings = Storage.getSettings();
-            document.getElementById('font-select').value = settings.fontMain;
+            const font = settings.font || "'Inter', sans-serif";
+            document.getElementById('font-select').value = font;
         } else if (this.state.activeView === 'user-mgmt') {
             document.getElementById('user-mgmt-view').classList.remove('hidden');
             document.getElementById('current-folder-title').textContent = '계정 관리';
@@ -84,8 +84,9 @@ const App = {
         }
 
         this.renderFolders();
-        document.getElementById('display-username').textContent = this.state.currentUser.name;
-        document.getElementById('user-avatar-initial').textContent = this.state.currentUser.name[0];
+        const displayName = this.state.currentUser.name || this.state.currentUser.username;
+        document.getElementById('display-username').textContent = displayName;
+        document.getElementById('user-avatar-initial').textContent = displayName[0];
     },
 
     renderFolders() {
@@ -206,8 +207,7 @@ const App = {
         // Save Config (In-page)
         document.getElementById('btn-save-config').onclick = () => {
             const font = document.getElementById('font-select').value;
-            const settings = { fontMain: font };
-            Storage.saveSettings(settings);
+            Storage.saveSettings({ font });
             this.applySettings();
             alert('설정이 저장되었습니다.');
         };
@@ -311,7 +311,7 @@ const App = {
                 id: 'post_' + Date.now(),
                 folderId: this.state.activeFolderId,
                 authorId: this.state.currentUser.id,
-                authorName: this.state.currentUser.username,
+                authorName: this.state.currentUser.name || this.state.currentUser.username,
                 content,
                 images: [...this.state.pendingImages],
                 createdAt: new Date().toISOString()
@@ -415,7 +415,7 @@ const App = {
             const div = document.createElement('div');
             div.style = 'display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--glass-border); font-size: 14px;';
             div.innerHTML = `
-                <span>${u.username} ${u.isLocked ? '<b style="color:red">[잠금]</b>' : ''}</span>
+                <span>${u.name || u.username} <small style="color: var(--text-muted);">(${u.username})</small> ${u.isLocked ? '<b style="color:red">[잠금]</b>' : ''}</span>
                 <div style="display: flex; gap: 8px;">
                     <button class="icon-btn" onclick="App.resetUser('${u.id}')" title="비밀번호 초기화">🔄</button>
                     <button class="icon-btn" onclick="App.unlockUser('${u.id}')" title="잠금 해제">🔓</button>
