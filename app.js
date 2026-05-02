@@ -7,7 +7,8 @@ const App = {
         activeFolderId: null,
         pendingImages: [],
         currentUser: null,
-        showHome: true // New state to track if we should show home
+        showHome: true,
+        activeView: 'posts' // 'posts', 'add-folder', 'config', 'user-mgmt'
     },
 
     init() {
@@ -48,17 +49,43 @@ const App = {
     },
 
     renderMain() {
-        const user = this.state.currentUser;
-        document.getElementById('display-username').textContent = user.username;
-        document.getElementById('user-avatar-initial').textContent = user.username[0].toUpperCase();
-        
-        this.renderFolders();
-        if (this.state.activeFolderId) {
-            this.renderPosts();
-            document.getElementById('folder-content').classList.remove('hidden');
-        } else {
-            document.getElementById('folder-content').classList.add('hidden');
+        const views = ['posts-view', 'add-folder-view', 'config-view', 'user-mgmt-view'];
+        views.forEach(v => {
+            const el = document.getElementById(v);
+            if (el) el.classList.add('hidden');
+        });
+
+        // Sidebar selection styling
+        document.querySelectorAll('.sidebar .btn-secondary').forEach(btn => btn.classList.remove('active'));
+
+        if (this.state.activeView === 'posts') {
+            document.getElementById('posts-view').classList.remove('hidden');
+            if (this.state.activeFolderId) {
+                this.renderPosts();
+            } else {
+                document.getElementById('post-list').innerHTML = '<div style="text-align: center; margin-top: 50px; color: var(--text-muted);">폴더를 선택하여 글을 확인하세요.</div>';
+            }
+        } else if (this.state.activeView === 'add-folder') {
+            document.getElementById('add-folder-view').classList.remove('hidden');
+            document.getElementById('current-folder-title').textContent = '새 폴더 추가';
+            document.getElementById('btn-add-folder-view').classList.add('active');
+        } else if (this.state.activeView === 'config') {
+            document.getElementById('config-view').classList.remove('hidden');
+            document.getElementById('current-folder-title').textContent = '환경 설정';
+            document.getElementById('btn-config-view').classList.add('active');
+            // Load current font
+            const settings = Storage.getSettings();
+            document.getElementById('font-select').value = settings.fontMain;
+        } else if (this.state.activeView === 'user-mgmt') {
+            document.getElementById('user-mgmt-view').classList.remove('hidden');
+            document.getElementById('current-folder-title').textContent = '계정 관리';
+            document.getElementById('btn-user-mgmt-view').classList.add('active');
+            this.renderUserList();
         }
+
+        this.renderFolders();
+        document.getElementById('display-username').textContent = this.state.currentUser.name;
+        document.getElementById('user-avatar-initial').textContent = this.state.currentUser.name[0];
     },
 
     renderFolders() {
@@ -79,6 +106,7 @@ const App = {
             div.onclick = (e) => {
                 if (e.target.closest('.folder-actions')) return;
                 this.state.activeFolderId = f.id;
+                this.state.activeView = 'posts'; // Ensure view switches to posts
                 document.getElementById('current-folder-title').textContent = f.name;
                 this.renderMain();
             };
@@ -140,21 +168,64 @@ const App = {
             }
         };
 
-        // Change PW
-        document.getElementById('btn-change-pw').onclick = () => {
-            const p1 = document.getElementById('new-password').value;
-            const p2 = document.getElementById('confirm-password').value;
-            if (p1 !== p2) {
-                document.getElementById('change-pw-message').textContent = '비밀번호가 일치하지 않습니다.';
+        // Sidebar View Switches
+        document.getElementById('btn-add-folder-view').onclick = () => {
+            this.state.activeView = 'add-folder';
+            this.state.activeFolderId = null;
+            this.renderMain();
+        };
+        document.getElementById('btn-config-view').onclick = () => {
+            this.state.activeView = 'config';
+            this.renderMain();
+        };
+        document.getElementById('btn-user-mgmt-view').onclick = () => {
+            if (this.state.currentUser.role !== 'admin') {
+                alert('관리자 권한이 필요합니다.');
                 return;
             }
-            if (p1.length < 4) {
-                document.getElementById('change-pw-message').textContent = '최소 4자 이상 입력해주세요.';
-                return;
+            this.state.activeView = 'user-mgmt';
+            this.renderMain();
+        };
+
+        // Create Folder (In-page)
+        document.getElementById('btn-create-folder-submit').onclick = () => {
+            const name = document.getElementById('new-folder-name-input').value;
+            if (!name) return;
+            const folders = Storage.getFolders();
+            const newFolder = { id: 'folder_' + Date.now(), name };
+            folders.push(newFolder);
+            Storage.saveFolders(folders);
+            document.getElementById('new-folder-name-input').value = '';
+            this.state.activeView = 'posts';
+            this.state.activeFolderId = newFolder.id;
+            document.getElementById('current-folder-title').textContent = newFolder.name;
+            this.renderMain();
+            alert('폴더가 생성되었습니다.');
+        };
+
+        // Save Config (In-page)
+        document.getElementById('btn-save-config').onclick = () => {
+            const font = document.getElementById('font-select').value;
+            const settings = { fontMain: font };
+            Storage.saveSettings(settings);
+            this.applySettings();
+            alert('설정이 저장되었습니다.');
+        };
+
+        // Create User (In-page)
+        document.getElementById('btn-create-user').onclick = () => {
+            const id = document.getElementById('new-user-id').value;
+            const name = document.getElementById('new-user-name').value;
+            if (!id || !name) return;
+            const res = Auth.createUser(id, name, 'user');
+            if (res.success) {
+                document.getElementById('new-user-id').value = '';
+                document.getElementById('new-user-name').value = '';
+                this.renderUserList();
+                alert('사용자가 생성되었습니다. 초기 비밀번호: 1234');
+            } else {
+                alert(res.message);
             }
-            Auth.changePassword(this.state.currentUser.id, p1);
-            this.state.currentUser = Storage.getCurrentUser();
-            this.renderScreen();
         };
 
         // Logout
@@ -162,6 +233,8 @@ const App = {
             Auth.logout();
             this.state.currentUser = null;
             this.state.activeFolderId = null;
+            this.state.showHome = true;
+            this.state.activeView = 'posts';
             this.renderScreen();
         };
 
