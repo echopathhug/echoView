@@ -238,11 +238,7 @@ const App = {
             this.renderScreen();
         };
 
-        // Folders
-        document.getElementById('btn-add-folder').onclick = () => {
-            this.showFolderModal(null);
-        };
-
+        // Folders (rename only, add handled in-page)
         document.getElementById('btn-confirm-folder').onclick = () => {
             const name = document.getElementById('folder-name-input').value;
             if (!name) return;
@@ -280,6 +276,19 @@ const App = {
             }
         };
 
+        // Post Editor Toggle (floating button)
+        document.getElementById('btn-new-post').onclick = () => {
+            if (!this.state.activeFolderId) {
+                alert('먼저 폴더를 선택해주세요.');
+                return;
+            }
+            const editor = document.getElementById('post-editor-section');
+            editor.classList.toggle('hidden');
+            if (!editor.classList.contains('hidden')) {
+                document.getElementById('post-input').focus();
+            }
+        };
+
         // Post Creation
         document.getElementById('image-upload').onchange = (e) => {
             const files = Array.from(e.target.files);
@@ -311,10 +320,11 @@ const App = {
             posts.push(newPost);
             Storage.savePosts(posts);
 
-            // Clear editor
+            // Clear editor and hide it
             document.getElementById('post-input').value = '';
             this.state.pendingImages = [];
             this.renderPendingImages();
+            document.getElementById('post-editor-section').classList.add('hidden');
             this.renderPosts();
         };
 
@@ -322,41 +332,6 @@ const App = {
             const input = document.getElementById('post-input');
             input.value += ' #';
             input.focus();
-        };
-
-        // Modals
-        document.querySelectorAll('.btn-close-modal').forEach(btn => {
-            btn.onclick = () => this.closeModals();
-        });
-
-        document.getElementById('btn-user-mgmt').onclick = () => {
-            this.showUserMgmt();
-        };
-
-        document.getElementById('btn-create-user').onclick = () => {
-            const id = document.getElementById('new-user-id').value;
-            if (!id) return;
-            const res = Auth.createUser(id);
-            if (!res.success) alert(res.message);
-            else {
-                document.getElementById('new-user-id').value = '';
-                this.renderUserTable();
-            }
-        };
-
-        // Configuration
-        document.getElementById('btn-config').onclick = () => {
-            document.getElementById('config-modal').classList.remove('hidden');
-            const settings = Storage.getSettings();
-            document.getElementById('font-select').value = settings.font;
-        };
-
-        document.getElementById('btn-save-config').onclick = () => {
-            const font = document.getElementById('font-select').value;
-            Storage.saveSettings({ font });
-            this.applySettings();
-            this.closeModals();
-            alert('설정이 저장되었습니다.');
         };
 
         // Link Post
@@ -396,6 +371,10 @@ const App = {
             this.renderMain();
             alert('게시글이 수정되었습니다.');
         };
+        // Modals close buttons
+        document.querySelectorAll('.btn-close-modal').forEach(btn => {
+            btn.onclick = () => this.closeModals();
+        });
     },
 
     showFolderModal(folder) {
@@ -418,8 +397,13 @@ const App = {
     },
 
     showUserMgmt() {
-        document.getElementById('user-mgmt-modal').classList.remove('hidden');
-        this.renderUserTable();
+        // No longer shows modal; in-page view is used
+        this.state.activeView = 'user-mgmt';
+        this.renderMain();
+    },
+
+    renderUserList() {
+        return this.renderUserTable();
     },
 
     renderUserTable() {
