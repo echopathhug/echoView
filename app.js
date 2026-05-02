@@ -6,7 +6,8 @@ const App = {
     state: {
         activeFolderId: null,
         pendingImages: [],
-        currentUser: null
+        currentUser: null,
+        showHome: true // New state to track if we should show home
     },
 
     init() {
@@ -27,16 +28,22 @@ const App = {
     },
 
     renderScreen() {
-        const screens = ['login-screen', 'change-pw-screen', 'main-screen'];
+        const screens = ['home-screen', 'login-screen', 'change-pw-screen', 'main-screen'];
         screens.forEach(s => document.getElementById(s).classList.add('hidden'));
 
-        if (!this.state.currentUser) {
-            document.getElementById('login-screen').classList.remove('hidden');
-        } else if (this.state.currentUser.mustChangePassword) {
-            document.getElementById('change-pw-screen').classList.remove('hidden');
+        if (this.state.currentUser) {
+            if (this.state.currentUser.mustChangePassword) {
+                document.getElementById('change-pw-screen').classList.remove('hidden');
+            } else {
+                document.getElementById('main-screen').classList.remove('hidden');
+                this.renderMain();
+            }
         } else {
-            document.getElementById('main-screen').classList.remove('hidden');
-            this.renderMain();
+            if (this.state.showHome) {
+                document.getElementById('home-screen').classList.remove('hidden');
+            } else {
+                document.getElementById('login-screen').classList.remove('hidden');
+            }
         }
     },
 
@@ -114,6 +121,12 @@ const App = {
     },
 
     bindEvents() {
+        // Home
+        document.getElementById('btn-go-to-login').onclick = () => {
+            this.state.showHome = false;
+            this.renderScreen();
+        };
+
         // Login
         document.getElementById('btn-login').onclick = () => {
             const u = document.getElementById('login-username').value;
