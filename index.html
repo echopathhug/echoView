@@ -188,6 +188,27 @@
                 </div>
             </div>
         </div>
+
+        <!-- 모달: 게시글 수정 -->
+        <div id="edit-post-modal" class="modal-overlay hidden">
+            <div class="glass-card modal-content fade-in">
+                <h3 style="margin-bottom: 20px;">게시글 수정</h3>
+                <div class="form-group">
+                    <label>내용</label>
+                    <textarea id="edit-post-input" class="input-field" style="min-height: 150px; resize: vertical;"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>폴더 이동</label>
+                    <select id="edit-post-folder-select" class="input-field" style="background: rgba(15, 23, 42, 0.8); cursor: pointer;">
+                        <!-- 폴더 목록 동적 생성 -->
+                    </select>
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <button id="btn-save-edit-post" class="btn btn-primary">수정 완료</button>
+                    <button class="btn btn-secondary btn-close-modal">취소</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Scripts -->

@@ -102,9 +102,10 @@ const App = {
                 <div class="post-images">
                     ${p.images.map(img => `<img src="${img}" onclick="App.viewImage('${img}')">`).join('')}
                 </div>
-                <div style="text-align: right;">
+                <div style="text-align: right; display: flex; justify-content: flex-end; gap: 12px;">
                     ${(p.authorId === this.state.currentUser.id || this.state.currentUser.role === 'admin') 
-                        ? `<button class="icon-btn" onclick="App.deletePost('${p.id}')" style="color: var(--danger); font-size: 12px;">삭제</button>` 
+                        ? `<button class="icon-btn" onclick="App.showEditPostModal('${p.id}')" style="font-size: 12px;">수정</button>
+                           <button class="icon-btn" onclick="App.deletePost('${p.id}')" style="color: var(--danger); font-size: 12px;">삭제</button>` 
                         : ''}
                 </div>
             `;
@@ -289,6 +290,26 @@ const App = {
             document.getElementById('link-post-id-input').value = '';
             this.closeModals();
         };
+
+        // Edit Post
+        document.getElementById('btn-save-edit-post').onclick = () => {
+            const postId = document.getElementById('edit-post-modal').dataset.postId;
+            const content = document.getElementById('edit-post-input').value;
+            const folderId = document.getElementById('edit-post-folder-select').value;
+            
+            const posts = Storage.getPosts();
+            const idx = posts.findIndex(p => p.id === postId);
+            if (idx === -1) return;
+
+            posts[idx].content = content;
+            posts[idx].folderId = folderId;
+            posts[idx].updatedAt = new Date().toISOString();
+
+            Storage.savePosts(posts);
+            this.closeModals();
+            this.renderMain();
+            alert('게시글이 수정되었습니다.');
+        };
     },
 
     showFolderModal(folder) {
@@ -423,14 +444,34 @@ const App = {
                 <div class="post-images">
                     ${p.images.map(img => `<img src="${img}" onclick="App.viewImage('${img}')">`).join('')}
                 </div>
-                <div style="text-align: right;">
+                <div style="text-align: right; display: flex; justify-content: flex-end; gap: 12px;">
                     ${(p.authorId === this.state.currentUser.id || this.state.currentUser.role === 'admin') 
-                        ? `<button class="icon-btn" onclick="App.deletePost('${p.id}')" style="color: var(--danger); font-size: 12px;">삭제</button>` 
+                        ? `<button class="icon-btn" onclick="App.showEditPostModal('${p.id}')" style="font-size: 12px;">수정</button>
+                           <button class="icon-btn" onclick="App.deletePost('${p.id}')" style="color: var(--danger); font-size: 12px;">삭제</button>` 
                         : ''}
                 </div>
             `;
             list.appendChild(card);
         });
+    },
+
+    showEditPostModal(postId) {
+        const posts = Storage.getPosts();
+        const post = posts.find(p => p.id === postId);
+        if (!post) return;
+
+        const modal = document.getElementById('edit-post-modal');
+        modal.dataset.postId = postId;
+        document.getElementById('edit-post-input').value = post.content;
+
+        // Render folder select options
+        const folderSelect = document.getElementById('edit-post-folder-select');
+        const folders = Storage.getFolders();
+        folderSelect.innerHTML = folders.map(f => 
+            `<option value="${f.id}" ${f.id === post.folderId ? 'selected' : ''}>${f.name}</option>`
+        ).join('');
+
+        modal.classList.remove('hidden');
     }
 };
 
