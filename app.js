@@ -13,11 +13,20 @@ const App = {
     },
 
     async init() {
-        await Storage.init();
-        this.state.currentUser = Storage.getCurrentUser();
-        await this.applySettings();
-        await this.renderScreen();
-        this.bindEvents();
+        try {
+            await Storage.init();
+            this.state.currentUser = Storage.getCurrentUser();
+            await this.applySettings();
+            await this.renderScreen();
+            this.bindEvents();
+        } catch (error) {
+            console.error("Firebase Initialization Error:", error);
+            alert("데이터베이스 연결 오류가 발생했습니다: " + error.message + "\n개발자 도구(F12) 콘솔을 확인해주세요.");
+            // 화면이 완전히 하얗게 남지 않도록 홈 스크린이라도 표시 시도
+            document.getElementById('home-screen').classList.remove('hidden');
+            document.getElementById('btn-go-to-login').textContent = "연결 오류";
+            document.getElementById('btn-go-to-login').disabled = true;
+        }
     },
 
     async applySettings() {
