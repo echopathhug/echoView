@@ -169,6 +169,23 @@ const App = {
             }
         };
 
+        // Change Password (first login)
+        document.getElementById('btn-change-pw').onclick = () => {
+            const p1 = document.getElementById('new-password').value;
+            const p2 = document.getElementById('confirm-password').value;
+            if (p1 !== p2) {
+                document.getElementById('change-pw-message').textContent = '비밀번호가 일치하지 않습니다.';
+                return;
+            }
+            if (p1.length < 4) {
+                document.getElementById('change-pw-message').textContent = '최소 4자 이상 입력해주세요.';
+                return;
+            }
+            Auth.changePassword(this.state.currentUser.id, p1);
+            this.state.currentUser = Storage.getCurrentUser();
+            this.renderScreen();
+        };
+
         // Sidebar View Switches
         document.getElementById('btn-add-folder-view').onclick = () => {
             this.state.activeView = 'add-folder';
