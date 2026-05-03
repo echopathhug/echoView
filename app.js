@@ -282,6 +282,26 @@ const App = {
             }
         };
 
+        // Edit User Info (Modal Save)
+        document.getElementById('btn-save-user-info').onclick = () => {
+            const modal = document.getElementById('edit-user-modal');
+            const userId = modal.dataset.editingUserId;
+            if (!userId) return;
+
+            const name = document.getElementById('edit-user-name-input').value.trim();
+            const email = document.getElementById('edit-user-email-input').value.trim();
+            
+            if (!name) {
+                alert('이름을 입력해주세요.');
+                return;
+            }
+
+            Auth.updateUser(userId, { name, email });
+            this.renderUserList();
+            this.closeModals();
+            alert('사용자 정보가 변경되었습니다.');
+        };
+
         // Logout
         document.getElementById('btn-logout').onclick = () => {
             Auth.logout();
@@ -473,7 +493,7 @@ const App = {
                     ${u.email ? `<div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${u.email}</div>` : ''}
                 </div>
                 <div style="display: flex; gap: 8px;">
-                    <button class="icon-btn" onclick="App.editUserEmail('${u.id}', '${u.email || ''}')" title="이메일 변경">📧</button>
+                    <button class="icon-btn" onclick="App.showEditUserModal('${u.id}', '${u.name || u.username}', '${u.email || ''}')" title="정보 변경">✏️</button>
                     <button class="icon-btn" onclick="App.resetUser('${u.id}')" title="비밀번호 초기화">🔄</button>
                     <button class="icon-btn" onclick="App.unlockUser('${u.id}')" title="잠금 해제">🔓</button>
                     ${u.username !== 'rootuser' ? `<button class="icon-btn" onclick="App.deleteUser('${u.id}')" title="삭제">&times;</button>` : ''}
@@ -519,13 +539,12 @@ const App = {
             this.renderUserTable();
         }
     },
-    editUserEmail(id, currentEmail) {
-        const newEmail = prompt('새로운 이메일 주소를 입력하세요:', currentEmail);
-        if (newEmail !== null) { // 취소 버튼을 누르지 않은 경우
-            Auth.updateUser(id, { email: newEmail.trim() });
-            this.renderUserTable();
-            alert('이메일 주소가 변경되었습니다.');
-        }
+    showEditUserModal(id, currentName, currentEmail) {
+        const modal = document.getElementById('edit-user-modal');
+        modal.dataset.editingUserId = id;
+        document.getElementById('edit-user-name-input').value = currentName;
+        document.getElementById('edit-user-email-input').value = currentEmail;
+        modal.classList.remove('hidden');
     },
     deletePost(id) {
         if (confirm('글을 삭제하시겠습니까?')) {
