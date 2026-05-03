@@ -23,6 +23,34 @@ const App = {
         }
     },
 
+    compressImage(file, maxWidth = 1000, quality = 0.7) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    },
+
     async init() {
         try {
             await Storage.init();
@@ -377,16 +405,23 @@ const App = {
 
         // Post Editor Toggle - 기존 FAB 대신 사이드바 버튼으로 처리됨
         // Post Creation
-        document.getElementById('image-upload').onchange = (e) => {
+        document.getElementById('image-upload').onchange = async (e) => {
             const files = Array.from(e.target.files);
-            files.forEach(file => {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    this.state.pendingImages.push(event.target.result);
-                    this.renderPendingImages();
-                };
-                reader.readAsDataURL(file);
-            });
+            App.setLoading(true); // 압축 진행 중 화면 잠금
+            try {
+                for (const file of files) {
+                    if (!file.type.startsWith('image/')) continue;
+                    const compressedBase64 = await App.compressImage(file);
+                    this.state.pendingImages.push(compressedBase64);
+                }
+                this.renderPendingImages();
+            } catch (error) {
+                console.error("이미지 압축 중 오류:", error);
+                alert("이미지 처리 중 오류가 발생했습니다.");
+            } finally {
+                App.setLoading(false);
+                e.target.value = ''; // 초기화하여 같은 파일 다시 선택 가능하도록 처리
+            }
         };
 
         document.getElementById('btn-save-post').onclick = async () => {
