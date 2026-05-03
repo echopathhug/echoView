@@ -62,6 +62,9 @@ const App = {
             document.getElementById('posts-view').classList.remove('hidden');
             if (this.state.activeFolderId) {
                 this.renderPosts();
+                // 에디터 hidden 상태에 따라 글쓰기 버튼 active 토글
+                const editorOpen = !document.getElementById('post-editor-section').classList.contains('hidden');
+                if (editorOpen) document.getElementById('btn-write-post-view').classList.add('active');
             } else {
                 document.getElementById('post-list').innerHTML = '<div style="text-align: center; margin-top: 50px; color: var(--text-muted);">폴더를 선택하여 글을 확인하세요.</div>';
             }
@@ -187,6 +190,17 @@ const App = {
         };
 
         // Sidebar View Switches
+        document.getElementById('btn-write-post-view').onclick = () => {
+            if (!this.state.activeFolderId) {
+                alert('먼저 왼쪽에서 폴더를 선택해주세요.');
+                return;
+            }
+            this.state.activeView = 'posts';
+            this.renderMain();
+            const editor = document.getElementById('post-editor-section');
+            editor.classList.remove('hidden');
+            document.getElementById('post-input').focus();
+        };
         document.getElementById('btn-add-folder-view').onclick = () => {
             this.state.activeView = 'add-folder';
             this.state.activeFolderId = null;
@@ -293,19 +307,7 @@ const App = {
             }
         };
 
-        // Post Editor Toggle (floating button)
-        document.getElementById('btn-new-post').onclick = () => {
-            if (!this.state.activeFolderId) {
-                alert('먼저 폴더를 선택해주세요.');
-                return;
-            }
-            const editor = document.getElementById('post-editor-section');
-            editor.classList.toggle('hidden');
-            if (!editor.classList.contains('hidden')) {
-                document.getElementById('post-input').focus();
-            }
-        };
-
+        // Post Editor Toggle - 기존 FAB 대신 사이드바 버튼으로 처리됨
         // Post Creation
         document.getElementById('image-upload').onchange = (e) => {
             const files = Array.from(e.target.files);
