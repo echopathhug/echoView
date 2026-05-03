@@ -164,7 +164,7 @@
 
                 <!-- 뷰 4: 계정 관리 -->
                 <div id="user-mgmt-view" class="hidden">
-                    <div class="glass-card" style="margin-bottom: 24px;">
+                    <div class="glass-card" style="margin-bottom: 24px; max-width: 100%;">
                         <h3 style="margin-bottom: 20px; font-size: 20px;">새 계정 생성</h3>
                         <div style="display: flex; gap: 12px; align-items: end;">
                             <div class="form-group" style="flex: 1; margin-bottom: 0;">
@@ -179,10 +179,10 @@
                                 <label>이메일</label>
                                 <input type="email" id="new-user-email" class="input-field" placeholder="example@email.com">
                             </div>
-                            <button id="btn-create-user" class="btn btn-primary" style="height: 48px; padding: 0 20px;">추가</button>
+                            <button id="btn-create-user" class="btn btn-primary" style="height: 40px; padding: 0 16px; font-size: 14px;">추가</button>
                         </div>
                     </div>
-                    <div class="glass-card">
+                    <div class="glass-card" style="max-width: 100%;">
                         <h3 style="margin-bottom: 20px; font-size: 20px;">사용자 목록</h3>
                         <div id="user-table" style="max-height: 400px; overflow-y: auto;"></div>
                     </div>
