@@ -168,7 +168,28 @@ const App = {
                 this.state.currentUser = res.user;
                 this.renderScreen();
             } else {
+                if (res.isTempPasswordSent) {
+                    alert(`비밀번호 5회 오류로 등록된 이메일(${res.email})로 임시 비밀번호가 발송되었습니다.`);
+                }
                 document.getElementById('login-message').textContent = res.message;
+            }
+        };
+
+        // Forgot Password
+        document.getElementById('btn-show-forgot-pw').onclick = () => {
+            document.getElementById('forgot-pw-modal').classList.remove('hidden');
+        };
+
+        document.getElementById('btn-send-temp-pw').onclick = () => {
+            const username = document.getElementById('forgot-pw-username-input').value;
+            if (!username) return;
+            const res = Auth.resetPassword(username);
+            if (res.success) {
+                alert(`입력하신 계정의 이메일(${res.email})로 임시 비밀번호가 발송되었습니다.`);
+                document.getElementById('forgot-pw-modal').classList.add('hidden');
+                document.getElementById('forgot-pw-username-input').value = '';
+            } else {
+                alert(res.message);
             }
         };
 
@@ -247,11 +268,13 @@ const App = {
         document.getElementById('btn-create-user').onclick = () => {
             const id = document.getElementById('new-user-id').value;
             const name = document.getElementById('new-user-name').value;
+            const email = document.getElementById('new-user-email').value;
             if (!id || !name) return;
-            const res = Auth.createUser(id, name, 'user');
+            const res = Auth.createUser(id, name, email, 'user');
             if (res.success) {
                 document.getElementById('new-user-id').value = '';
                 document.getElementById('new-user-name').value = '';
+                document.getElementById('new-user-email').value = '';
                 this.renderUserList();
                 alert('사용자가 생성되었습니다. 초기 비밀번호: 1234');
             } else {
@@ -434,7 +457,10 @@ const App = {
             const div = document.createElement('div');
             div.style = 'display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--glass-border); font-size: 14px;';
             div.innerHTML = `
-                <span>${u.name || u.username} <small style="color: var(--text-muted);">(${u.username})</small> ${u.isLocked ? '<b style="color:red">[잠금]</b>' : ''}</span>
+                <div>
+                    <span>${u.name || u.username} <small style="color: var(--text-muted);">(${u.username})</small> ${u.isLocked ? '<b style="color:red">[잠금]</b>' : ''}</span>
+                    ${u.email ? `<div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${u.email}</div>` : ''}
+                </div>
                 <div style="display: flex; gap: 8px;">
                     <button class="icon-btn" onclick="App.resetUser('${u.id}')" title="비밀번호 초기화">🔄</button>
                     <button class="icon-btn" onclick="App.unlockUser('${u.id}')" title="잠금 해제">🔓</button>
