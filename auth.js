@@ -1,12 +1,13 @@
 /**
  * Authentication and User Management Engine
+ * Async version for Firebase integration
  */
 
 const Auth = {
     MAX_FAILED_ATTEMPTS: 5,
 
-    login(username, password) {
-        const users = Storage.getUsers();
+    async login(username, password) {
+        const users = await Storage.getUsers();
         const userIndex = users.findIndex(u => u.username === username);
 
         if (userIndex === -1) {
@@ -22,7 +23,7 @@ const Auth = {
         if (user.password === password) {
             // Success
             user.failedAttempts = 0;
-            Storage.saveUsers(users);
+            await Storage.saveUser(user);
             
             // Check if password change is required
             if (user.mustChangePassword) {
@@ -43,7 +44,7 @@ const Auth = {
                     user.mustChangePassword = true;
                     user.failedAttempts = 0;
                     user.isLocked = false;
-                    Storage.saveUsers(users);
+                    await Storage.saveUser(user);
                     
                     console.log(`[Email 전송 시뮬레이션] To: ${user.email}, 임시 비밀번호: ${tempPassword}`);
                     return {
@@ -55,7 +56,7 @@ const Auth = {
                     };
                 } else {
                     user.isLocked = true;
-                    Storage.saveUsers(users);
+                    await Storage.saveUser(user);
                     return { 
                         success: false, 
                         message: '비밀번호 5회 오류로 계정이 잠겼습니다.' + (user.username === 'rootuser' ? '' : ' 관리자에게 문의하세요.')
@@ -63,7 +64,7 @@ const Auth = {
                 }
             }
             
-            Storage.saveUsers(users);
+            await Storage.saveUser(user);
             
             const remaining = this.MAX_FAILED_ATTEMPTS - user.failedAttempts;
             return { 
@@ -73,22 +74,23 @@ const Auth = {
         }
     },
 
-    changePassword(userId, newPassword) {
-        const users = Storage.getUsers();
+    async changePassword(userId, newPassword) {
+        const users = await Storage.getUsers();
         const userIndex = users.findIndex(u => u.id === userId);
 
         if (userIndex === -1) return { success: false, message: '사용자를 찾을 수 없습니다.' };
 
-        users[userIndex].password = newPassword;
-        users[userIndex].mustChangePassword = false;
-        Storage.saveUsers(users);
-        Storage.setCurrentUser(users[userIndex]);
+        const user = users[userIndex];
+        user.password = newPassword;
+        user.mustChangePassword = false;
+        await Storage.saveUser(user);
+        Storage.setCurrentUser(user);
 
         return { success: true };
     },
 
-    resetPassword(username) {
-        const users = Storage.getUsers();
+    async resetPassword(username) {
+        const users = await Storage.getUsers();
         const userIndex = users.findIndex(u => u.username === username);
 
         if (userIndex === -1) {
@@ -112,15 +114,15 @@ const Auth = {
         user.failedAttempts = 0;
         user.isLocked = false;
         
-        Storage.saveUsers(users);
+        await Storage.saveUser(user);
 
         console.log(`[Email 전송 시뮬레이션] To: ${user.email}, 임시 비밀번호: ${tempPassword}`);
         
         return { success: true, email: user.email, tempPassword };
     },
 
-    createUser(username, name, email, role = 'user', initialPassword = '1234') {
-        const users = Storage.getUsers();
+    async createUser(username, name, email, role = 'user', initialPassword = '1234') {
+        const users = await Storage.getUsers();
         if (users.find(u => u.username === username)) {
             return { success: false, message: '이미 존재하는 아이디입니다.' };
         }
@@ -138,25 +140,22 @@ const Auth = {
             createdAt: new Date().toISOString()
         };
 
-        users.push(newUser);
-        Storage.saveUsers(users);
+        await Storage.saveUser(newUser);
         return { success: true, user: newUser };
     },
 
-    updateUser(userId, data) {
-        const users = Storage.getUsers();
-        const index = users.findIndex(u => u.id === userId);
-        if (index === -1) return { success: false };
+    async updateUser(userId, data) {
+        const users = await Storage.getUsers();
+        const userIndex = users.findIndex(u => u.id === userId);
+        if (userIndex === -1) return { success: false };
 
-        users[index] = { ...users[index], ...data };
-        Storage.saveUsers(users);
+        const updatedUser = { ...users[userIndex], ...data };
+        await Storage.saveUser(updatedUser);
         return { success: true };
     },
 
-    deleteUser(userId) {
-        let users = Storage.getUsers();
-        users = users.filter(u => u.id !== userId);
-        Storage.saveUsers(users);
+    async deleteUser(userId) {
+        await Storage.deleteUser(userId);
         return { success: true };
     },
 

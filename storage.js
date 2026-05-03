@@ -1,97 +1,105 @@
 /**
  * Storage Utility for Family Board
- * Handles persistence using localStorage
+ * Handles persistence using Firebase Firestore
  */
 
-const STORAGE_KEYS = {
-    USERS: 'family_board_users',
-    FOLDERS: 'family_board_folders',
-    POSTS: 'family_board_posts',
-    CURRENT_USER: 'family_board_current_user',
-    SETTINGS: 'family_board_settings'
+// Firebase 설정
+const firebaseConfig = {
+    apiKey: "AIzaSyAp3vt2Rmtakj084xj-86yD4O3kqIR8uYA",
+    authDomain: "echoview20260503.firebaseapp.com",
+    projectId: "echoview20260503",
+    storageBucket: "echoview20260503.firebasestorage.app",
+    messagingSenderId: "29972941442",
+    appId: "1:29972941442:web:153657916311fd1a2d829b"
 };
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
 const Storage = {
     // Initial data setup
-    init() {
-        let users = this.getUsers();
-        
+    async init() {
         // Ensure rootuser exists
-        if (!users.find(u => u.username === 'rootuser')) {
-            const defaultRoot = {
+        const rootSnap = await db.collection('users').doc('rootuser').get();
+        if (!rootSnap.exists) {
+            await db.collection('users').doc('rootuser').set({
                 id: 'rootuser',
                 username: 'rootuser',
                 name: '관리자',
+                email: '',
                 password: '1234',
                 failedAttempts: 0,
                 isLocked: false,
                 mustChangePassword: true,
                 role: 'admin',
                 createdAt: new Date().toISOString()
-            };
-            users.push(defaultRoot);
-            this.saveUsers(users);
+            });
         }
-
-        if (!localStorage.getItem(STORAGE_KEYS.FOLDERS)) {
-            this.saveFolders([]);
-        }
-        if (!localStorage.getItem(STORAGE_KEYS.POSTS)) {
-            this.savePosts([]);
-        }
-        if (!localStorage.getItem(STORAGE_KEYS.SETTINGS)) {
-            this.saveSettings({ font: "'Inter', sans-serif" });
+        
+        // Ensure global settings exist
+        const settingsSnap = await db.collection('settings').doc('global').get();
+        if (!settingsSnap.exists) {
+            await db.collection('settings').doc('global').set({ font: "'Inter', sans-serif" });
         }
     },
 
-    // Users
-    getUsers() {
-        const data = localStorage.getItem(STORAGE_KEYS.USERS);
-        return data ? JSON.parse(data) : [];
-    },
-    saveUsers(users) {
-        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
-    },
-
-    // Current Session
+    // Current Session (Local)
     getCurrentUser() {
-        const data = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+        const data = sessionStorage.getItem('family_board_current_user');
         return data ? JSON.parse(data) : null;
     },
     setCurrentUser(user) {
-        localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+        sessionStorage.setItem('family_board_current_user', JSON.stringify(user));
     },
     clearCurrentUser() {
-        localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+        sessionStorage.removeItem('family_board_current_user');
+    },
+
+    // Users
+    async getUsers() {
+        const snap = await db.collection('users').get();
+        return snap.docs.map(doc => doc.data());
+    },
+    async saveUser(user) {
+        await db.collection('users').doc(user.id).set(user);
+    },
+    async deleteUser(id) {
+        await db.collection('users').doc(id).delete();
     },
 
     // Folders
-    getFolders() {
-        const data = localStorage.getItem(STORAGE_KEYS.FOLDERS);
-        return data ? JSON.parse(data) : [];
+    async getFolders() {
+        const snap = await db.collection('folders').get();
+        return snap.docs.map(doc => doc.data());
     },
-    saveFolders(folders) {
-        localStorage.setItem(STORAGE_KEYS.FOLDERS, JSON.stringify(folders));
+    async saveFolder(folder) {
+        await db.collection('folders').doc(folder.id).set(folder);
+    },
+    async deleteFolder(id) {
+        await db.collection('folders').doc(id).delete();
     },
 
     // Posts
-    getPosts() {
-        const data = localStorage.getItem(STORAGE_KEYS.POSTS);
-        return data ? JSON.parse(data) : [];
+    async getPosts() {
+        const snap = await db.collection('posts').get();
+        return snap.docs.map(doc => doc.data());
     },
-    savePosts(posts) {
-        localStorage.setItem(STORAGE_KEYS.POSTS, JSON.stringify(posts));
+    async savePost(post) {
+        await db.collection('posts').doc(post.id).set(post);
+    },
+    async deletePost(id) {
+        await db.collection('posts').doc(id).delete();
     },
 
     // Settings
-    getSettings() {
-        const data = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-        return data ? JSON.parse(data) : { font: "'Inter', sans-serif" };
+    async getSettings() {
+        const snap = await db.collection('settings').doc('global').get();
+        return snap.exists ? snap.data() : { font: "'Inter', sans-serif" };
     },
-    saveSettings(settings) {
-        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+    async saveSettings(settings) {
+        await db.collection('settings').doc('global').set(settings);
     }
 };
 
-// Export for use in other scripts
 window.Storage = Storage;

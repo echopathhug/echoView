@@ -1,5 +1,6 @@
 /**
  * Main Application Logic
+ * Async version for Firebase integration
  */
 
 const App = {
@@ -11,16 +12,16 @@ const App = {
         activeView: 'posts' // 'posts', 'add-folder', 'config', 'user-mgmt'
     },
 
-    init() {
-        Storage.init();
+    async init() {
+        await Storage.init();
         this.state.currentUser = Storage.getCurrentUser();
-        this.applySettings();
-        this.renderScreen();
+        await this.applySettings();
+        await this.renderScreen();
         this.bindEvents();
     },
 
-    applySettings() {
-        const settings = Storage.getSettings();
+    async applySettings() {
+        const settings = await Storage.getSettings();
         const font = settings.font || "'Inter', sans-serif";
         document.documentElement.style.setProperty('--font-main', font);
         
@@ -28,7 +29,7 @@ const App = {
         if (fontSelect) fontSelect.value = font;
     },
 
-    renderScreen() {
+    async renderScreen() {
         const screens = ['home-screen', 'login-screen', 'change-pw-screen', 'main-screen'];
         screens.forEach(s => document.getElementById(s).classList.add('hidden'));
 
@@ -37,7 +38,7 @@ const App = {
                 document.getElementById('change-pw-screen').classList.remove('hidden');
             } else {
                 document.getElementById('main-screen').classList.remove('hidden');
-                this.renderMain();
+                await this.renderMain();
             }
         } else {
             if (this.state.showHome) {
@@ -48,7 +49,7 @@ const App = {
         }
     },
 
-    renderMain() {
+    async renderMain() {
         const views = ['posts-view', 'add-folder-view', 'config-view', 'user-mgmt-view'];
         views.forEach(v => {
             const el = document.getElementById(v);
@@ -61,7 +62,7 @@ const App = {
         if (this.state.activeView === 'posts') {
             document.getElementById('posts-view').classList.remove('hidden');
             if (this.state.activeFolderId) {
-                this.renderPosts();
+                await this.renderPosts();
                 // 에디터 hidden 상태에 따라 글쓰기 버튼 active 토글
                 const editorOpen = !document.getElementById('post-editor-section').classList.contains('hidden');
                 if (editorOpen) document.getElementById('btn-write-post-view').classList.add('active');
@@ -76,24 +77,24 @@ const App = {
             document.getElementById('config-view').classList.remove('hidden');
             document.getElementById('current-folder-title').textContent = '환경 설정';
             document.getElementById('btn-config-view').classList.add('active');
-            const settings = Storage.getSettings();
+            const settings = await Storage.getSettings();
             const font = settings.font || "'Inter', sans-serif";
             document.getElementById('font-select').value = font;
         } else if (this.state.activeView === 'user-mgmt') {
             document.getElementById('user-mgmt-view').classList.remove('hidden');
             document.getElementById('current-folder-title').textContent = '계정 관리';
             document.getElementById('btn-user-mgmt-view').classList.add('active');
-            this.renderUserList();
+            await this.renderUserList();
         }
 
-        this.renderFolders();
+        await this.renderFolders();
         const displayName = this.state.currentUser.name || this.state.currentUser.username;
         document.getElementById('display-username').textContent = displayName;
         document.getElementById('user-avatar-initial').textContent = displayName[0];
     },
 
-    renderFolders() {
-        const folders = Storage.getFolders();
+    async renderFolders() {
+        const folders = await Storage.getFolders();
         const list = document.getElementById('folder-list');
         list.innerHTML = '';
 
@@ -107,19 +108,20 @@ const App = {
                     <button class="icon-btn btn-delete-folder" data-id="${f.id}">&times;</button>
                 </div>
             `;
-            div.onclick = (e) => {
+            div.onclick = async (e) => {
                 if (e.target.closest('.folder-actions')) return;
                 this.state.activeFolderId = f.id;
                 this.state.activeView = 'posts'; // Ensure view switches to posts
                 document.getElementById('current-folder-title').textContent = f.name;
-                this.renderMain();
+                await this.renderMain();
             };
             list.appendChild(div);
         });
     },
 
-    renderPosts() {
-        const posts = Storage.getPosts().filter(p => p.folderId === this.state.activeFolderId);
+    async renderPosts() {
+        const allPosts = await Storage.getPosts();
+        const posts = allPosts.filter(p => p.folderId === this.state.activeFolderId);
         const list = document.getElementById('post-list');
         list.innerHTML = '';
 
@@ -139,7 +141,7 @@ const App = {
                 </div>
                 <div class="post-content">${content}</div>
                 <div class="post-images">
-                    ${p.images.map(img => `<img src="${img}" onclick="App.viewImage('${img}')">`).join('')}
+                    ${(p.images || []).map(img => `<img src="${img}" onclick="App.viewImage('${img}')">`).join('')}
                 </div>
                 <div style="text-align: right; display: flex; justify-content: flex-end; gap: 12px;">
                     ${(p.authorId === this.state.currentUser.id || this.state.currentUser.role === 'admin') 
@@ -154,19 +156,19 @@ const App = {
 
     bindEvents() {
         // Home
-        document.getElementById('btn-go-to-login').onclick = () => {
+        document.getElementById('btn-go-to-login').onclick = async () => {
             this.state.showHome = false;
-            this.renderScreen();
+            await this.renderScreen();
         };
 
         // Login
-        document.getElementById('btn-login').onclick = () => {
+        document.getElementById('btn-login').onclick = async () => {
             const u = document.getElementById('login-username').value;
             const p = document.getElementById('login-password').value;
-            const res = Auth.login(u, p);
+            const res = await Auth.login(u, p);
             if (res.success) {
                 this.state.currentUser = res.user;
-                this.renderScreen();
+                await this.renderScreen();
             } else {
                 if (res.isTempPasswordSent) {
                     alert(`비밀번호 5회 오류로 등록된 이메일(${res.email})로 임시 비밀번호가 발송되었습니다.`);
@@ -180,10 +182,10 @@ const App = {
             document.getElementById('forgot-pw-modal').classList.remove('hidden');
         };
 
-        document.getElementById('btn-send-temp-pw').onclick = () => {
+        document.getElementById('btn-send-temp-pw').onclick = async () => {
             const username = document.getElementById('forgot-pw-username-input').value;
             if (!username) return;
-            const res = Auth.resetPassword(username);
+            const res = await Auth.resetPassword(username);
             if (res.success) {
                 alert(`입력하신 계정의 이메일(${res.email})로 임시 비밀번호가 발송되었습니다.`);
                 document.getElementById('forgot-pw-modal').classList.add('hidden');
@@ -194,7 +196,7 @@ const App = {
         };
 
         // Change Password (first login)
-        document.getElementById('btn-change-pw').onclick = () => {
+        document.getElementById('btn-change-pw').onclick = async () => {
             const p1 = document.getElementById('new-password').value;
             const p2 = document.getElementById('confirm-password').value;
             if (p1 !== p2) {
@@ -205,77 +207,75 @@ const App = {
                 document.getElementById('change-pw-message').textContent = '최소 4자 이상 입력해주세요.';
                 return;
             }
-            Auth.changePassword(this.state.currentUser.id, p1);
+            await Auth.changePassword(this.state.currentUser.id, p1);
             this.state.currentUser = Storage.getCurrentUser();
-            this.renderScreen();
+            await this.renderScreen();
         };
 
         // Sidebar View Switches
-        document.getElementById('btn-write-post-view').onclick = () => {
+        document.getElementById('btn-write-post-view').onclick = async () => {
             if (!this.state.activeFolderId) {
                 alert('먼저 왼쪽에서 폴더를 선택해주세요.');
                 return;
             }
             this.state.activeView = 'posts';
-            this.renderMain();
+            await this.renderMain();
             const editor = document.getElementById('post-editor-section');
             editor.classList.remove('hidden');
             document.getElementById('post-input').focus();
         };
-        document.getElementById('btn-add-folder-view').onclick = () => {
+        document.getElementById('btn-add-folder-view').onclick = async () => {
             this.state.activeView = 'add-folder';
             this.state.activeFolderId = null;
-            this.renderMain();
+            await this.renderMain();
         };
-        document.getElementById('btn-config-view').onclick = () => {
+        document.getElementById('btn-config-view').onclick = async () => {
             this.state.activeView = 'config';
-            this.renderMain();
+            await this.renderMain();
         };
-        document.getElementById('btn-user-mgmt-view').onclick = () => {
+        document.getElementById('btn-user-mgmt-view').onclick = async () => {
             if (this.state.currentUser.role !== 'admin') {
                 alert('관리자 권한이 필요합니다.');
                 return;
             }
             this.state.activeView = 'user-mgmt';
-            this.renderMain();
+            await this.renderMain();
         };
 
         // Create Folder (In-page)
-        document.getElementById('btn-create-folder-submit').onclick = () => {
+        document.getElementById('btn-create-folder-submit').onclick = async () => {
             const name = document.getElementById('new-folder-name-input').value;
             if (!name) return;
-            const folders = Storage.getFolders();
             const newFolder = { id: 'folder_' + Date.now(), name };
-            folders.push(newFolder);
-            Storage.saveFolders(folders);
+            await Storage.saveFolder(newFolder);
             document.getElementById('new-folder-name-input').value = '';
             this.state.activeView = 'posts';
             this.state.activeFolderId = newFolder.id;
             document.getElementById('current-folder-title').textContent = newFolder.name;
-            this.renderMain();
+            await this.renderMain();
             alert('폴더가 생성되었습니다.');
         };
 
         // Save Config (In-page)
-        document.getElementById('btn-save-config').onclick = () => {
+        document.getElementById('btn-save-config').onclick = async () => {
             const font = document.getElementById('font-select').value;
-            Storage.saveSettings({ font });
-            this.applySettings();
+            await Storage.saveSettings({ font });
+            await this.applySettings();
             alert('설정이 저장되었습니다.');
         };
 
         // Create User (In-page)
-        document.getElementById('btn-create-user').onclick = () => {
+        document.getElementById('btn-create-user').onclick = async () => {
             const id = document.getElementById('new-user-id').value;
             const name = document.getElementById('new-user-name').value;
             const email = document.getElementById('new-user-email').value;
             if (!id || !name) return;
-            const res = Auth.createUser(id, name, email, 'user');
+            const res = await Auth.createUser(id, name, email, 'user');
             if (res.success) {
                 document.getElementById('new-user-id').value = '';
                 document.getElementById('new-user-name').value = '';
                 document.getElementById('new-user-email').value = '';
-                this.renderUserList();
+                await this.renderUserList();
                 alert('사용자가 생성되었습니다. 초기 비밀번호: 1234');
             } else {
                 alert(res.message);
@@ -283,7 +283,7 @@ const App = {
         };
 
         // Edit User Info (Modal Save)
-        document.getElementById('btn-save-user-info').onclick = () => {
+        document.getElementById('btn-save-user-info').onclick = async () => {
             const modal = document.getElementById('edit-user-modal');
             const userId = modal.dataset.editingUserId;
             if (!userId) return;
@@ -296,56 +296,61 @@ const App = {
                 return;
             }
 
-            Auth.updateUser(userId, { name, email });
-            this.renderUserList();
+            await Auth.updateUser(userId, { name, email });
+            await this.renderUserList();
             this.closeModals();
             alert('사용자 정보가 변경되었습니다.');
         };
 
         // Logout
-        document.getElementById('btn-logout').onclick = () => {
+        document.getElementById('btn-logout').onclick = async () => {
             Auth.logout();
             this.state.currentUser = null;
             this.state.activeFolderId = null;
             this.state.showHome = true;
             this.state.activeView = 'posts';
-            this.renderScreen();
+            await this.renderScreen();
         };
 
         // Folders (rename only, add handled in-page)
-        document.getElementById('btn-confirm-folder').onclick = () => {
+        document.getElementById('btn-confirm-folder').onclick = async () => {
             const name = document.getElementById('folder-name-input').value;
             if (!name) return;
             
-            const folders = Storage.getFolders();
             const editingId = document.getElementById('folder-modal').dataset.editingId;
 
             if (editingId) {
-                const idx = folders.findIndex(f => f.id === editingId);
-                folders[idx].name = name;
+                const folders = await Storage.getFolders();
+                const f = folders.find(f => f.id === editingId);
+                if (f) {
+                    f.name = name;
+                    await Storage.saveFolder(f);
+                }
             } else {
-                folders.push({ id: 'f_' + Date.now(), name });
+                await Storage.saveFolder({ id: 'f_' + Date.now(), name });
             }
             
-            Storage.saveFolders(folders);
             this.closeModals();
-            this.renderFolders();
+            await this.renderFolders();
         };
 
         // Delegation for folder actions
-        document.getElementById('folder-list').onclick = (e) => {
+        document.getElementById('folder-list').onclick = async (e) => {
             const id = e.target.dataset.id;
             if (e.target.classList.contains('btn-rename-folder')) {
-                const f = Storage.getFolders().find(f => f.id === id);
+                const folders = await Storage.getFolders();
+                const f = folders.find(f => f.id === id);
                 this.showFolderModal(f);
             } else if (e.target.classList.contains('btn-delete-folder')) {
                 if (confirm('폴더와 모든 글을 삭제하시겠습니까?')) {
-                    const folders = Storage.getFolders().filter(f => f.id !== id);
-                    Storage.saveFolders(folders);
-                    const posts = Storage.getPosts().filter(p => p.folderId !== id);
-                    Storage.savePosts(posts);
+                    const allPosts = await Storage.getPosts();
+                    const folderPosts = allPosts.filter(p => p.folderId === id);
+                    for (const p of folderPosts) {
+                        await Storage.deletePost(p.id);
+                    }
+                    await Storage.deleteFolder(id);
                     if (this.state.activeFolderId === id) this.state.activeFolderId = null;
-                    this.renderMain();
+                    await this.renderMain();
                 }
             }
         };
@@ -364,11 +369,10 @@ const App = {
             });
         };
 
-        document.getElementById('btn-save-post').onclick = () => {
+        document.getElementById('btn-save-post').onclick = async () => {
             const content = document.getElementById('post-input').value;
             if (!content && this.state.pendingImages.length === 0) return;
 
-            const posts = Storage.getPosts();
             const newPost = {
                 id: 'post_' + Date.now(),
                 folderId: this.state.activeFolderId,
@@ -379,8 +383,7 @@ const App = {
                 createdAt: new Date().toISOString()
             };
 
-            posts.push(newPost);
-            Storage.savePosts(posts);
+            await Storage.savePost(newPost);
 
             // Clear editor and hide it
             document.getElementById('post-input').value = '';
@@ -388,7 +391,7 @@ const App = {
             this.renderPendingImages();
             document.getElementById('post-editor-section').classList.add('hidden');
             document.getElementById('btn-write-post-view').classList.remove('active');
-            this.renderPosts();
+            await this.renderPosts();
         };
 
         document.getElementById('btn-cancel-post').onclick = () => {
@@ -426,22 +429,22 @@ const App = {
         };
 
         // Edit Post
-        document.getElementById('btn-save-edit-post').onclick = () => {
+        document.getElementById('btn-save-edit-post').onclick = async () => {
             const postId = document.getElementById('edit-post-modal').dataset.postId;
             const content = document.getElementById('edit-post-input').value;
             const folderId = document.getElementById('edit-post-folder-select').value;
             
-            const posts = Storage.getPosts();
-            const idx = posts.findIndex(p => p.id === postId);
-            if (idx === -1) return;
+            const posts = await Storage.getPosts();
+            const post = posts.find(p => p.id === postId);
+            if (!post) return;
 
-            posts[idx].content = content;
-            posts[idx].folderId = folderId;
-            posts[idx].updatedAt = new Date().toISOString();
+            post.content = content;
+            post.folderId = folderId;
+            post.updatedAt = new Date().toISOString();
 
-            Storage.savePosts(posts);
+            await Storage.savePost(post);
             this.closeModals();
-            this.renderMain();
+            await this.renderMain();
             alert('게시글이 수정되었습니다.');
         };
         // Modals close buttons
@@ -469,18 +472,17 @@ const App = {
         input.focus();
     },
 
-    showUserMgmt() {
-        // No longer shows modal; in-page view is used
+    async showUserMgmt() {
         this.state.activeView = 'user-mgmt';
-        this.renderMain();
+        await this.renderMain();
     },
 
-    renderUserList() {
-        return this.renderUserTable();
+    async renderUserList() {
+        return await this.renderUserTable();
     },
 
-    renderUserTable() {
-        const users = Storage.getUsers();
+    async renderUserTable() {
+        const users = await Storage.getUsers();
         const table = document.getElementById('user-table');
         table.innerHTML = '';
 
@@ -523,20 +525,20 @@ const App = {
     },
 
     // Global helpers for inline events
-    resetUser(id) {
-        Auth.updateUser(id, { password: '1234', mustChangePassword: true });
+    async resetUser(id) {
+        await Auth.updateUser(id, { password: '1234', mustChangePassword: true });
         alert('비밀번호가 1234로 초기화되었습니다.');
-        this.renderUserTable();
+        await this.renderUserTable();
     },
-    unlockUser(id) {
-        Auth.updateUser(id, { isLocked: false, failedAttempts: 0 });
+    async unlockUser(id) {
+        await Auth.updateUser(id, { isLocked: false, failedAttempts: 0 });
         alert('계정 잠금이 해제되었습니다.');
-        this.renderUserTable();
+        await this.renderUserTable();
     },
-    deleteUser(id) {
+    async deleteUser(id) {
         if (confirm('사용자를 삭제하시겠습니까?')) {
-            Auth.deleteUser(id);
-            this.renderUserTable();
+            await Auth.deleteUser(id);
+            await this.renderUserTable();
         }
     },
     showEditUserModal(id, currentName, currentEmail) {
@@ -546,11 +548,10 @@ const App = {
         document.getElementById('edit-user-email-input').value = currentEmail;
         modal.classList.remove('hidden');
     },
-    deletePost(id) {
+    async deletePost(id) {
         if (confirm('글을 삭제하시겠습니까?')) {
-            const posts = Storage.getPosts().filter(p => p.id !== id);
-            Storage.savePosts(posts);
-            this.renderPosts();
+            await Storage.deletePost(id);
+            await this.renderPosts();
         }
     },
     viewImage(src) {
@@ -558,14 +559,15 @@ const App = {
         const win = window.open();
         win.document.write(`<img src="${src}" style="max-width:100%; height:auto;">`);
     },
-    goToPost(shortId) {
-        const posts = Storage.getPosts();
+    async goToPost(shortId) {
+        const posts = await Storage.getPosts();
         const post = posts.find(p => p.id.endsWith(shortId));
         if (post) {
             this.state.activeFolderId = post.folderId;
-            const folder = Storage.getFolders().find(f => f.id === post.folderId);
+            const folders = await Storage.getFolders();
+            const folder = folders.find(f => f.id === post.folderId);
             document.getElementById('current-folder-title').textContent = folder ? folder.name : '폴더';
-            this.renderMain();
+            await this.renderMain();
             // Scroll to post logic could be added here
             setTimeout(() => {
                 alert(`이동한 글: ${post.content.substring(0, 20)}...`);
@@ -574,11 +576,12 @@ const App = {
             alert('해당 게시글을 찾을 수 없습니다.');
         }
     },
-    filterByHashtag(tag) {
-        const posts = Storage.getPosts().filter(p => p.folderId === this.state.activeFolderId && p.content.includes('#' + tag));
-        this.renderPostsWithFilter(posts, tag);
+    async filterByHashtag(tag) {
+        const posts = await Storage.getPosts();
+        const filtered = posts.filter(p => p.folderId === this.state.activeFolderId && p.content.includes('#' + tag));
+        await this.renderPostsWithFilter(filtered, tag);
     },
-    renderPostsWithFilter(posts, tag) {
+    async renderPostsWithFilter(posts, tag) {
         const list = document.getElementById('post-list');
         list.innerHTML = `<div style="margin-bottom: 16px; color: var(--primary);">#${tag} 검색 결과 (${posts.length}건) <button class="icon-btn" onclick="App.renderPosts()">[필터 해제]</button></div>`;
         
@@ -596,7 +599,7 @@ const App = {
                 </div>
                 <div class="post-content">${content}</div>
                 <div class="post-images">
-                    ${p.images.map(img => `<img src="${img}" onclick="App.viewImage('${img}')">`).join('')}
+                    ${(p.images || []).map(img => `<img src="${img}" onclick="App.viewImage('${img}')">`).join('')}
                 </div>
                 <div style="text-align: right; display: flex; justify-content: flex-end; gap: 12px;">
                     ${(p.authorId === this.state.currentUser.id || this.state.currentUser.role === 'admin') 
@@ -609,8 +612,8 @@ const App = {
         });
     },
 
-    showEditPostModal(postId) {
-        const posts = Storage.getPosts();
+    async showEditPostModal(postId) {
+        const posts = await Storage.getPosts();
         const post = posts.find(p => p.id === postId);
         if (!post) return;
 
@@ -620,7 +623,7 @@ const App = {
 
         // Render folder select options
         const folderSelect = document.getElementById('edit-post-folder-select');
-        const folders = Storage.getFolders();
+        const folders = await Storage.getFolders();
         folderSelect.innerHTML = folders.map(f => 
             `<option value="${f.id}" ${f.id === post.folderId ? 'selected' : ''}>${f.name}</option>`
         ).join('');
