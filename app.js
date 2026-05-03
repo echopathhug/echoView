@@ -473,6 +473,7 @@ const App = {
                     ${u.email ? `<div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${u.email}</div>` : ''}
                 </div>
                 <div style="display: flex; gap: 8px;">
+                    <button class="icon-btn" onclick="App.editUserEmail('${u.id}', '${u.email || ''}')" title="이메일 변경">📧</button>
                     <button class="icon-btn" onclick="App.resetUser('${u.id}')" title="비밀번호 초기화">🔄</button>
                     <button class="icon-btn" onclick="App.unlockUser('${u.id}')" title="잠금 해제">🔓</button>
                     ${u.username !== 'rootuser' ? `<button class="icon-btn" onclick="App.deleteUser('${u.id}')" title="삭제">&times;</button>` : ''}
@@ -516,6 +517,14 @@ const App = {
         if (confirm('사용자를 삭제하시겠습니까?')) {
             Auth.deleteUser(id);
             this.renderUserTable();
+        }
+    },
+    editUserEmail(id, currentEmail) {
+        const newEmail = prompt('새로운 이메일 주소를 입력하세요:', currentEmail);
+        if (newEmail !== null) { // 취소 버튼을 누르지 않은 경우
+            Auth.updateUser(id, { email: newEmail.trim() });
+            this.renderUserTable();
+            alert('이메일 주소가 변경되었습니다.');
         }
     },
     deletePost(id) {
