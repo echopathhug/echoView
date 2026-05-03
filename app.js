@@ -367,8 +367,19 @@ const App = {
             this.state.pendingImages = [];
             this.renderPendingImages();
             document.getElementById('post-editor-section').classList.add('hidden');
+            document.getElementById('btn-write-post-view').classList.remove('active');
             this.renderPosts();
         };
+
+        document.getElementById('btn-cancel-post').onclick = () => {
+            // Clear editor and hide it without saving
+            document.getElementById('post-input').value = '';
+            this.state.pendingImages = [];
+            this.renderPendingImages();
+            document.getElementById('post-editor-section').classList.add('hidden');
+            document.getElementById('btn-write-post-view').classList.remove('active');
+        };
+
 
         document.getElementById('btn-add-hashtag').onclick = () => {
             const input = document.getElementById('post-input');
