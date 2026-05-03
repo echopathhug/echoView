@@ -12,6 +12,17 @@ const App = {
         activeView: 'posts' // 'posts', 'add-folder', 'config', 'user-mgmt'
     },
 
+    setLoading(isLoading) {
+        if (isLoading) {
+            document.body.style.cursor = 'wait';
+            document.body.style.pointerEvents = 'none';
+            // 버튼들 텍스트 변경 등 시각적 효과를 원한다면 여기서 추가 가능
+        } else {
+            document.body.style.cursor = 'default';
+            document.body.style.pointerEvents = 'auto';
+        }
+    },
+
     async init() {
         try {
             await Storage.init();
@@ -382,25 +393,38 @@ const App = {
             const content = document.getElementById('post-input').value;
             if (!content && this.state.pendingImages.length === 0) return;
 
-            const newPost = {
-                id: 'post_' + Date.now(),
-                folderId: this.state.activeFolderId,
-                authorId: this.state.currentUser.id,
-                authorName: this.state.currentUser.name || this.state.currentUser.username,
-                content,
-                images: [...this.state.pendingImages],
-                createdAt: new Date().toISOString()
-            };
+            App.setLoading(true);
+            const btn = document.getElementById('btn-save-post');
+            const originalText = btn.textContent;
+            btn.textContent = '저장 중...';
 
-            await Storage.savePost(newPost);
+            try {
+                const newPost = {
+                    id: 'post_' + Date.now(),
+                    folderId: this.state.activeFolderId,
+                    authorId: this.state.currentUser.id,
+                    authorName: this.state.currentUser.name || this.state.currentUser.username,
+                    content,
+                    images: [...this.state.pendingImages],
+                    createdAt: new Date().toISOString()
+                };
 
-            // Clear editor and hide it
-            document.getElementById('post-input').value = '';
-            this.state.pendingImages = [];
-            this.renderPendingImages();
-            document.getElementById('post-editor-section').classList.add('hidden');
-            document.getElementById('btn-write-post-view').classList.remove('active');
-            await this.renderPosts();
+                await Storage.savePost(newPost);
+
+                // Clear editor and hide it
+                document.getElementById('post-input').value = '';
+                this.state.pendingImages = [];
+                this.renderPendingImages();
+                document.getElementById('post-editor-section').classList.add('hidden');
+                document.getElementById('btn-write-post-view').classList.remove('active');
+                await this.renderPosts();
+            } catch (error) {
+                console.error(error);
+                alert('게시글 저장 중 오류가 발생했습니다.');
+            } finally {
+                btn.textContent = originalText;
+                App.setLoading(false);
+            }
         };
 
         document.getElementById('btn-cancel-post').onclick = () => {
@@ -443,18 +467,31 @@ const App = {
             const content = document.getElementById('edit-post-input').value;
             const folderId = document.getElementById('edit-post-folder-select').value;
             
-            const posts = await Storage.getPosts();
-            const post = posts.find(p => p.id === postId);
-            if (!post) return;
+            App.setLoading(true);
+            const btn = document.getElementById('btn-save-edit-post');
+            const originalText = btn.textContent;
+            btn.textContent = '수정 중...';
 
-            post.content = content;
-            post.folderId = folderId;
-            post.updatedAt = new Date().toISOString();
+            try {
+                const posts = await Storage.getPosts();
+                const post = posts.find(p => p.id === postId);
+                if (!post) return;
 
-            await Storage.savePost(post);
-            this.closeModals();
-            await this.renderMain();
-            alert('게시글이 수정되었습니다.');
+                post.content = content;
+                post.folderId = folderId;
+                post.updatedAt = new Date().toISOString();
+
+                await Storage.savePost(post);
+                this.closeModals();
+                await this.renderMain();
+                alert('게시글이 수정되었습니다.');
+            } catch (error) {
+                console.error(error);
+                alert('게시글 수정 중 오류가 발생했습니다.');
+            } finally {
+                btn.textContent = originalText;
+                App.setLoading(false);
+            }
         };
         // Modals close buttons
         document.querySelectorAll('.btn-close-modal').forEach(btn => {
