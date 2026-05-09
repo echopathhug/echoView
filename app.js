@@ -216,13 +216,26 @@ const App = {
     },
 
     bindEvents() {
+        // Helper: 엔터 키 입력 시 버튼 클릭 트리거
+        const addEnterSupport = (inputId, buttonId) => {
+            const input = document.getElementById(inputId);
+            const button = document.getElementById(buttonId);
+            if (input && button) {
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.keyCode === 13) {
+                        e.preventDefault();
+                        button.click();
+                    }
+                });
+            }
+        };
+
         // Home
         document.getElementById('btn-go-to-login').onclick = async () => {
             this.state.showHome = false;
             await this.renderScreen();
         };
 
-        // Login
         document.getElementById('btn-login').onclick = async () => {
             const u = document.getElementById('login-username').value;
             const p = document.getElementById('login-password').value;
@@ -237,6 +250,8 @@ const App = {
                 document.getElementById('login-message').textContent = res.message;
             }
         };
+        addEnterSupport('login-username', 'btn-login');
+        addEnterSupport('login-password', 'btn-login');
 
         // Forgot Password
         document.getElementById('btn-show-forgot-pw').onclick = () => {
@@ -255,6 +270,7 @@ const App = {
                 alert(res.message);
             }
         };
+        addEnterSupport('forgot-pw-username-input', 'btn-send-temp-pw');
 
         // Change Password (first login)
         document.getElementById('btn-change-pw').onclick = async () => {
@@ -272,6 +288,8 @@ const App = {
             this.state.currentUser = Storage.getCurrentUser();
             await this.renderScreen();
         };
+        addEnterSupport('new-password', 'btn-change-pw');
+        addEnterSupport('confirm-password', 'btn-change-pw');
 
         // Sidebar View Switches
         document.getElementById('btn-write-post-view').onclick = async () => {
@@ -391,7 +409,6 @@ const App = {
             setTimeout(() => btn.textContent = originalText, 2000);
         };
 
-        // Create Folder (In-page)
         document.getElementById('btn-create-folder-submit').onclick = async () => {
             const name = document.getElementById('new-folder-name-input').value;
             if (!name) return;
@@ -404,6 +421,7 @@ const App = {
             await this.renderMain();
             alert('폴더가 생성되었습니다.');
         };
+        addEnterSupport('new-folder-name-input', 'btn-create-folder-submit');
 
         // Save Config (In-page)
         document.getElementById('btn-save-config').onclick = async () => {
@@ -413,7 +431,6 @@ const App = {
             alert('설정이 저장되었습니다.');
         };
 
-        // Create User (In-page)
         document.getElementById('btn-create-user').onclick = async () => {
             const id = document.getElementById('new-user-id').value;
             const name = document.getElementById('new-user-name').value;
@@ -430,6 +447,9 @@ const App = {
                 alert(res.message);
             }
         };
+        addEnterSupport('new-user-id', 'btn-create-user');
+        addEnterSupport('new-user-name', 'btn-create-user');
+        addEnterSupport('new-user-email', 'btn-create-user');
 
         // Edit User Info (Modal Save)
         document.getElementById('btn-save-user-info').onclick = async () => {
@@ -450,6 +470,8 @@ const App = {
             this.closeModals();
             alert('사용자 정보가 변경되었습니다.');
         };
+        addEnterSupport('edit-user-name-input', 'btn-save-user-info');
+        addEnterSupport('edit-user-email-input', 'btn-save-user-info');
 
         // Logout
         document.getElementById('btn-logout').onclick = async () => {
@@ -482,6 +504,7 @@ const App = {
             this.closeModals();
             await this.renderFolders();
         };
+        addEnterSupport('folder-name-input', 'btn-confirm-folder');
 
         // Delegation for folder actions
         document.getElementById('folder-list').onclick = async (e) => {
@@ -596,6 +619,7 @@ const App = {
             document.getElementById('link-post-id-input').value = '';
             this.closeModals();
         };
+        addEnterSupport('link-post-id-input', 'btn-confirm-link');
 
         // Edit Post
         document.getElementById('btn-save-edit-post').onclick = async () => {
