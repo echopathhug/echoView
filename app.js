@@ -136,6 +136,17 @@ const App = {
         }
 
         await this.renderFolders();
+        
+        // Notice menu active state
+        const noticeMenu = document.getElementById('notice-menu');
+        if (noticeMenu) {
+            if (this.state.activeFolderId === 'folder_notice') {
+                noticeMenu.classList.add('active');
+            } else {
+                noticeMenu.classList.remove('active');
+            }
+        }
+
         const displayName = this.state.currentUser.name || this.state.currentUser.username;
         document.getElementById('display-username').textContent = displayName;
         document.getElementById('user-avatar-initial').textContent = displayName[0];
@@ -288,6 +299,32 @@ const App = {
             }
             this.state.activeView = 'user-mgmt';
             await this.renderMain();
+        };
+
+        // Notice Menu Click
+        document.getElementById('notice-menu').onclick = async () => {
+            this.state.activeFolderId = 'folder_notice';
+            this.state.activeView = 'posts';
+            document.getElementById('current-folder-title').textContent = '📢 공지사항';
+            await this.renderMain();
+        };
+
+        // Share App
+        document.getElementById('btn-share-app').onclick = () => {
+            const modal = document.getElementById('share-modal');
+            const input = document.getElementById('share-url-input');
+            input.value = window.location.href;
+            modal.classList.remove('hidden');
+        };
+
+        document.getElementById('btn-copy-url').onclick = () => {
+            const input = document.getElementById('share-url-input');
+            input.select();
+            document.execCommand('copy');
+            const btn = document.getElementById('btn-copy-url');
+            const originalText = btn.textContent;
+            btn.textContent = '완료!';
+            setTimeout(() => btn.textContent = originalText, 2000);
         };
 
         // Create Folder (In-page)

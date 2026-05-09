@@ -42,6 +42,16 @@ const Storage = {
         if (!settingsSnap.exists) {
             await db.collection('settings').doc('global').set({ font: "'Inter', sans-serif" });
         }
+
+        // Ensure notice folder exists
+        const noticeSnap = await db.collection('folders').doc('folder_notice').get();
+        if (!noticeSnap.exists) {
+            await db.collection('folders').doc('folder_notice').set({
+                id: 'folder_notice',
+                name: '📢 공지사항',
+                createdAt: new Date().toISOString()
+            });
+        }
     },
 
     // Current Session (Local)

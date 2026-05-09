@@ -81,6 +81,10 @@
                     <h1 class="sidebar-title">Family Board</h1>
                 </div>
                 
+                <div id="notice-menu" class="notice-item">
+                    <span>📢 공지사항</span>
+                </div>
+                
                 <div id="folder-list" class="folder-list">
                     <!-- 폴더 목록 동적 생성 -->
                 </div>
@@ -88,6 +92,7 @@
                 <div style="margin-top: auto; padding-top: 20px;">
                     <button id="btn-write-post-view" class="btn btn-secondary" style="margin-bottom: 12px;">글쓰기</button>
                     <button id="btn-add-folder-view" class="btn btn-secondary" style="margin-bottom: 12px;">폴더 추가</button>
+                    <button id="btn-share-app" class="btn btn-secondary" style="margin-bottom: 12px; background: rgba(192, 132, 252, 0.15); color: #c084fc;">🔗 앱 공유하기</button>
                     <button id="btn-config-view" class="btn btn-secondary" style="margin-bottom: 12px;">환경 설정</button>
                     <button id="btn-user-mgmt-view" class="btn btn-secondary" style="margin-bottom: 12px;">계정 관리</button>
                     <button id="btn-logout" class="btn btn-secondary" style="background: rgba(239, 68, 68, 0.1); color: var(--danger);">로그아웃</button>
@@ -270,6 +275,23 @@
                 <div style="display: flex; gap: 12px;">
                     <button id="btn-save-edit-post" class="btn btn-primary">수정 완료</button>
                     <button class="btn btn-secondary btn-close-modal">취소</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 모달: 앱 공유 -->
+        <div id="share-modal" class="modal-overlay hidden">
+            <div class="glass-card modal-content fade-in" style="max-width: 450px;">
+                <h3 style="margin-bottom: 20px;">가족에게 앱 공유하기</h3>
+                <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">
+                    아래 주소를 복사하여 카카오톡이나 메시지로 가족들에게 보내주세요.
+                </p>
+                <div class="form-group" style="position: relative;">
+                    <input type="text" id="share-url-input" class="input-field" readonly style="padding-right: 80px;">
+                    <button id="btn-copy-url" class="btn btn-primary" style="position: absolute; right: 4px; top: 4px; bottom: 4px; width: 70px; padding: 0; font-size: 13px; border-radius: 8px;">복사</button>
+                </div>
+                <div style="text-align: center; margin-top: 10px;">
+                    <button class="btn btn-secondary btn-close-modal">닫기</button>
                 </div>
             </div>
         </div>
