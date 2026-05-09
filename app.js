@@ -153,7 +153,9 @@ const App = {
     },
 
     async renderFolders() {
-        const folders = await Storage.getFolders();
+        const allFolders = await Storage.getFolders();
+        // 상단 전용 메뉴와 중복되지 않도록 '공지사항' 폴더는 제외하고 렌더링
+        const folders = allFolders.filter(f => f.id !== 'folder_notice');
         const list = document.getElementById('folder-list');
         list.innerHTML = '';
 
