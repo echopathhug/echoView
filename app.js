@@ -309,12 +309,74 @@ const App = {
             await this.renderMain();
         };
 
-        // Share App
-        document.getElementById('btn-share-app').onclick = () => {
+        // Sharing Center (Web/App)
+        document.getElementById('btn-share-app').onclick = async () => {
             const modal = document.getElementById('share-modal');
             const input = document.getElementById('share-url-input');
-            input.value = window.location.href;
+            input.value = window.location.origin + window.location.pathname;
+            
+            // Admin check
+            const isAdmin = this.state.currentUser.role === 'admin';
+            document.getElementById('admin-app-upload-section').classList.toggle('hidden', !isAdmin);
+            
+            // Load app file info
+            await this.refreshAppFileInfo();
+            
             modal.classList.remove('hidden');
+        };
+
+        // Trigger file select
+        document.getElementById('btn-trigger-app-upload').onclick = () => {
+            document.getElementById('app-file-upload').click();
+        };
+
+        // Handle file upload
+        document.getElementById('app-file-upload').onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // 1MB limit check (Firestore document limit)
+            if (file.size > 1024 * 1024) {
+                alert('파일 크기가 너무 큽니다. (최대 1MB)\n더 큰 파일은 별도의 클라우드 저장소 연동이 필요합니다.');
+                e.target.value = '';
+                return;
+            }
+
+            App.setLoading(true);
+            document.getElementById('app-upload-status').textContent = '업로드 중...';
+
+            try {
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    const base64 = event.target.result;
+                    await Storage.saveAppFile({
+                        fileName: file.name,
+                        base64: base64,
+                        uploadedAt: new Date().toISOString()
+                    });
+                    await this.refreshAppFileInfo();
+                    document.getElementById('app-upload-status').textContent = '업로드 완료!';
+                    App.setLoading(false);
+                };
+                reader.readAsDataURL(file);
+            } catch (err) {
+                console.error(err);
+                alert('업로드 실패');
+                App.setLoading(false);
+            }
+        };
+
+        // Download app file
+        document.getElementById('btn-download-app').onclick = async () => {
+            const appFile = await Storage.getAppFile();
+            if (!appFile) return;
+
+            const link = document.createElement('a');
+            link.href = appFile.base64;
+            link.download = appFile.fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         };
 
         document.getElementById('btn-copy-url').onclick = () => {
@@ -747,6 +809,20 @@ const App = {
         ).join('');
 
         modal.classList.remove('hidden');
+    },
+
+    async refreshAppFileInfo() {
+        const appFile = await Storage.getAppFile();
+        const infoEl = document.getElementById('app-file-info');
+        const dlBtn = document.getElementById('btn-download-app');
+        
+        if (appFile) {
+            infoEl.innerHTML = `현재 등록된 파일: <b>${appFile.fileName}</b><br><small style="color:var(--text-muted)">업로드일: ${new Date(appFile.uploadedAt).toLocaleString()}</small>`;
+            dlBtn.classList.remove('hidden');
+        } else {
+            infoEl.textContent = '등록된 앱 파일이 없습니다.';
+            dlBtn.classList.add('hidden');
+        }
     }
 };
 

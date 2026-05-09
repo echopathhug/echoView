@@ -109,6 +109,16 @@ const Storage = {
     },
     async saveSettings(settings) {
         await db.collection('settings').doc('global').set(settings);
+    },
+
+    // App File (Sharing Center)
+    async getAppFile() {
+        const snap = await db.collection('settings').doc('app').get();
+        return snap.exists ? snap.data() : null;
+    },
+    async saveAppFile(data) {
+        // data: { fileName, base64, uploadedAt }
+        await db.collection('settings').doc('app').set(data);
     }
 };
 
